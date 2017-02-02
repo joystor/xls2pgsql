@@ -28,7 +28,7 @@ def printCmdUsage():
 
 #Conection definitions##########
 def conect2PG():
-   
+
    global PG_CONN_STRING
    global PG_CONN
    try:
@@ -57,25 +57,37 @@ def xls2pg():
    global XLS_ENCODE
    global PG_CONN
    bk = None
-   print "Reading XLS"
+   print "  Reading XLS"
    if( XLS_ENCODE == None):
       bk = xlrd.open_workbook(XLS_FILE)
    else:
       bk = xlrd.open_workbook(XLS_FILE, encoding_override=XLS_ENCODE)
-   print "Creating "+TABLE+" table"
+   print "  Creating "+TABLE+" table"
    sheet = bk.sheet_by_index(0)
+
+   #Analicing type of columns
+   row = sheet.row(0)
+   row_types = [None] * len(row)
+   for idx, cell_obj in enumerate(row):
+       cell_type_str = ctype_text.get(cell_obj.ctype, 'unknown type')
+       row_types[idx] = "numeric"
+   for row_idx in range(1, sheet.nrows):
+       row = sheet.row(row_idx)
+       for idx, cell_obj in enumerate(row):
+          cell_type_str = ctype_text.get(cell_obj.ctype, 'unknown type')
+          if cell_type_str != "number" and cell_type_str != "empty":
+              row_types[idx] = "varchar"
+
    row = sheet.row(0)
    create_table = "CREATE TABLE "+TABLE+"("
    for idx, cell_obj in enumerate(row):
-      #cell_type_str = ctype_text.get(cell_obj.ctype, 'unknown type')
-      #print cell_type_str
       col = remove_accents(cell_obj.value)
       col = col.replace(" ","_").lower()
-      create_table = create_table + col + " varchar,"
+      create_table = create_table + col + " "+row_types[idx]+","
    create_table = create_table[0:-1] + ");"
-   
+
    num_cols = sheet.ncols
-   print "Inserting data"
+   print "  Inserting data"
    try:
       cur = PG_CONN.cursor()
       cur.execute( create_table )
@@ -90,37 +102,38 @@ def xls2pg():
                cell = cell.replace("'","''")
             else:
                cell = str(cell_obj.value)
-            insert = insert + "'"+ cell +"',"
+            if cell == "":
+               insert = insert + "null,"
+            else:
+               insert = insert + "'"+ cell +"',"
          insert = insert[0:-1] + ");"
          cur.execute( insert )
-         if( (row_idx % 100) == 0 ):
-            print ("."),
-      print "Commiting data"
+      print "  Commiting data"
       cur.close()
       PG_CONN.commit()
    except (Exception, psycopg2.DatabaseError) as error:
         print(error)
    finally:
       closeConn()
-       
-   
-   
 
-################################   
-   
-   
-   
+
+
+
+################################
+
+
+
 #Main
 def readOptions():
    try:
       opts, args = getopt.getopt(sys.argv[1:],"x:e::t:h:p::u:w::d:")
    except getopt.GetoptError:
       printCmdUsage("1")
-      
+
    global XLS_ENCODE
    global XLS_FILE
    global TABLE
-   
+
    conn_options = ('-h', '-d', '-p', '-u', '-w')
    connString = ""
    for opt, arg in opts:
@@ -158,4 +171,3 @@ if __name__ == "__main__":
    import xlrd
    xls2pg()
    closeConn()
-   
