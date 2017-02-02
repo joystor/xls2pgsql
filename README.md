@@ -8,7 +8,7 @@ $ xls2pgsql.py -x <xlsfile> -e <xls_encode> -t <table to export> -h <host> -p <p
 
 $ xls2pgsql.py -x Proyecciones_hogares_indigenas.xls -t conapo.proy_hog_indigena_10_20 -h localhost -u postgres -d db_proys
 ```
-For security propouses use .pgpass to store your postgres passwords to don't use the -w option
+For security purposes use .pgpass to store your postgres passwords to don't use the -w option
 
 
 ## Requiered libs
